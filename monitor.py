@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 # --- Configuration ---
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-FREITAG_URL = "https://www.freitag.ch/en/products/bags/f41-hawaii-five-o"
+FREITAG_URL = "https://freitag.ch/fr_FR/products/f41-hawaii-five-0"
 STATE_FILE = "seen_bags.json"
 
 def load_seen():
@@ -27,10 +27,9 @@ def fetch_bags():
     soup = BeautifulSoup(r.text, "html.parser")
 
     bags = []
-    # Freitag product cards — adjust selector if site structure changes
-    for card in soup.select("a[href*='/en/products/bags/f41']"):
+    for card in soup.select("a[href*='/fr_FR/products/f41']"):
         href = card.get("href", "")
-        if not href or href == "/en/products/bags/f41-hawaii-five-o":
+        if not href or href == "/fr_FR/products/f41-hawaii-five-0":
             continue
 
         img_tag = card.find("img")
@@ -41,7 +40,7 @@ def fetch_bags():
         bag_id = hashlib.md5(href.encode()).hexdigest()
         bags.append({
             "id": bag_id,
-            "url": "https://www.freitag.ch" + href if href.startswith("/") else href,
+            "url": "https://freitag.ch" + href if href.startswith("/") else href,
             "img": img_url,
         })
 
