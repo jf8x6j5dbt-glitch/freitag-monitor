@@ -50,7 +50,13 @@ def screenshot_bag(url, product_id):
         page = browser.new_page(viewport={"width": 600, "height": 600})
         page.goto(url, wait_until="networkidle", timeout=30000)
         page.wait_for_timeout(2000)
-        for selector in ["text=REFUSER", "text=Refuser", "button:has-text('REFUSER')", "button:has-text('Refuser')", "[id*=refuse]", "[class*=refuse]"]:
+        for selector in [
+            "button:has-text('REFUSER')",
+            "button:has-text('Refuser')",
+            "input[value='REFUSER']",
+            "a:has-text('REFUSER')",
+            "[role='button']:has-text('REFUSER')",
+        ]:
             try:
                 page.click(selector, timeout=2000)
                 print(f"Cookies fermes avec : {selector}")
