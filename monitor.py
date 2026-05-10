@@ -41,7 +41,24 @@ def fetch_bags():
         seen_ids.add(product_id)
 
         full_url = "https://freitag.ch" + href if href.startswith("/") else href
-        img_url = f"https://freitag.ch/api/assets/images/{product_id}/F41_main.jpg"
+
+        # Chercher l'URL d'image directement dans le HTML
+        img_url = None
+        img = a.find("img")
+        if img:
+            src = img.get("src") or img.get("data-src") or ""
+            if "cloudimg.io" in src or "s3.amazonaws.com" in src:
+                # Augmenter la taille pour une belle photo
+                img_url = re.sub(r"w=\d+", "w=600", src)
+                img_url = re.sub(r"h=\d+", "h=600", img_url)
+
+        # Fallback : construire l'URL S3 directement avec le numero produit
+        if not img_url:
+            img_url = (
+                f"https://cayidfqupa.cloudimg.io/"
+                f"frtg-product-images.s3.amazonaws.com/"
+                f"{product_id}_1.png?w=600&h=600"
+            )
 
         text = a.get_text(" ", strip=True)
         color_match = re.search(r"(RED|BLUE|GREEN|BLACK|WHITE|YELLOW|GREY|ORANGE|SILVER|MULTICOLOR)", text)
