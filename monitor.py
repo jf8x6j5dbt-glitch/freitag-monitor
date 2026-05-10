@@ -61,9 +61,7 @@ def screenshot_bag(url, product_id):
         page = browser.new_page(viewport={"width": 600, "height": 600})
         page.goto(url, wait_until="networkidle", timeout=30000)
         page.wait_for_timeout(2000)
-        # Debug : afficher tout le texte visible
         print("Texte page:", page.inner_text("body")[:500])
-        # Tenter plusieurs selectors pour le bouton cookies
         for selector in ["text=REFUSER", "text=Refuser", "button:has-text('REFUSER')", "button:has-text('Refuser')", "[id*=refuse]", "[class*=refuse]"]:
             try:
                 page.click(selector, timeout=2000)
@@ -72,11 +70,13 @@ def screenshot_bag(url, product_id):
                 break
             except Exception:
                 pass
+        try:
+            page.wait_for_selector("img", timeout=10000)
+        except Exception:
+            pass
         page.screenshot(path=path, clip={"x": 0, "y": 80, "width": 600, "height": 520})
         browser.close()
     return path
-
-
 
 def send_telegram(bag):
     caption = (
@@ -111,12 +111,3 @@ def main():
 
     print(f"Sacs F41 trouves : {len(bags)} | Nouveaux : {len(new_bags)}")
 
-    for bag in new_bags:
-        send_telegram(bag)
-        seen.add(bag["id"])
-        print(f"  Notifie : {bag['url']}")
-
-    save_seen(seen)
-
-if __name__ == "__main__":
-    main()
