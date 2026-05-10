@@ -25,33 +25,22 @@ def fetch_bags():
     r = requests.get(FREITAG_URL, headers=headers, timeout=15)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "html.parser")
-
     bags = []
     seen_ids = set()
-
     for a in soup.select("a[href*='f41-hawaii-five-0?v=']"):
         href = a.get("href", "")
         match = re.search(r"\?v=(\d+)", href)
         if not match:
             continue
-
         product_id = match.group(1)
         if product_id in seen_ids:
             continue
         seen_ids.add(product_id)
-
         full_url = "https://freitag.ch" + href if href.startswith("/") else href
-
         text = a.get_text(" ", strip=True)
         color_match = re.search(r"(RED|BLUE|GREEN|BLACK|WHITE|YELLOW|GREY|ORANGE|SILVER|MULTICOLOR)", text)
         color = f" . {color_match.group(1)}" if color_match else ""
-
-        bags.append({
-            "id": product_id,
-            "url": full_url,
-            "color": color,
-        })
-
+        bags.append({"id": product_id, "url": full_url, "color": color})
     return bags
 
 def screenshot_bag(url, product_id):
@@ -61,11 +50,11 @@ def screenshot_bag(url, product_id):
         page = browser.new_page(viewport={"width": 600, "height": 600})
         page.goto(url, wait_until="networkidle", timeout=30000)
         page.wait_for_timeout(2000)
-        print("Texte page:", page.inner_text("body")[:500])
+        print("Texte page:", page.inner_text("body")[:300])
         for selector in ["text=REFUSER", "text=Refuser", "button:has-text('REFUSER')", "button:has-text('Refuser')", "[id*=refuse]", "[class*=refuse]"]:
             try:
                 page.click(selector, timeout=2000)
-                print(f"  Cookies fermes avec : {selector}")
+                print(f"Cookies fermes avec : {selector}")
                 page.wait_for_timeout(1000)
                 break
             except Exception:
@@ -79,16 +68,12 @@ def screenshot_bag(url, product_id):
     return path
 
 def send_telegram(bag):
-    caption = (
-        f"Nouveau F41 disponible{bag['color']} !\n"
-        f"Voir le sac : {bag['url']}"
-    )
+    caption = f"Nouveau F41 disponible{bag['color']} !\nVoir le sac : {bag['url']}"
     screenshot_path = None
     try:
         screenshot_path = screenshot_bag(bag["url"], bag["id"])
     except Exception as e:
-        print(f"  Screenshot echoue : {e}")
-
+        print(f"Screenshot echoue : {e}")
     if screenshot_path and os.path.exists(screenshot_path):
         with open(screenshot_path, "rb") as photo:
             requests.post(
@@ -108,6 +93,12 @@ def main():
     seen = load_seen()
     bags = fetch_bags()
     new_bags = [b for b in bags if b["id"] not in seen]
-
     print(f"Sacs F41 trouves : {len(bags)} | Nouveaux : {len(new_bags)}")
+    for bag in new_bags:
+        send_telegram(bag)
+        seen.add(bag["id"])
+        print(f"Notifie : {bag['url']}")
+    save_seen(seen)
 
+if __name__ == "__main__":
+    main()
