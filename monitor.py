@@ -60,20 +60,22 @@ def screenshot_bag(url, product_id):
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 600, "height": 600})
         page.goto(url, wait_until="networkidle", timeout=30000)
-        # Fermer la banniere cookies
-        try:
-            page.click("text=REFUSER", timeout=5000)
-            page.wait_for_timeout(1000)
-        except Exception:
-            pass
-        # Attendre l'image produit
-        try:
-            page.wait_for_selector("img", timeout=10000)
-        except Exception:
-            pass
+        page.wait_for_timeout(2000)
+        # Debug : afficher tout le texte visible
+        print("Texte page:", page.inner_text("body")[:500])
+        # Tenter plusieurs selectors pour le bouton cookies
+        for selector in ["text=REFUSER", "text=Refuser", "button:has-text('REFUSER')", "button:has-text('Refuser')", "[id*=refuse]", "[class*=refuse]"]:
+            try:
+                page.click(selector, timeout=2000)
+                print(f"  Cookies fermes avec : {selector}")
+                page.wait_for_timeout(1000)
+                break
+            except Exception:
+                pass
         page.screenshot(path=path, clip={"x": 0, "y": 80, "width": 600, "height": 520})
         browser.close()
     return path
+
 
 
 def send_telegram(bag):
