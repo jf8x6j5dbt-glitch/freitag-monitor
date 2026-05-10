@@ -1,6 +1,6 @@
 import os
+import re
 import json
-import hashlib
 import requests
 from bs4 import BeautifulSoup
 
@@ -20,6 +20,10 @@ def save_seen(seen):
     with open(STATE_FILE, "w") as f:
         json.dump(list(seen), f)
 
+def get_image_url(product_id):
+    # Freitag utilise cette structure d'URL pour les images produit
+    return f"https://freitag.ch/api/images/{product_id}/1?width=600"
+
 def fetch_bags():
     headers = {"User-Agent": "Mozilla/5.0"}
     r = requests.get(FREITAG_URL, headers=headers, timeout=15)
@@ -27,42 +31,56 @@ def fetch_bags():
     soup = BeautifulSoup(r.text, "html.parser")
 
     bags = []
-    for card in soup.select("a[href*='/fr_FR/products/f41']"):
-        href = card.get("href", "")
-        if not href or href == "/fr_FR/products/f41-hawaii-five-0":
+    seen_ids = set()
+
+    for a in soup.select("a[href*='?v=']"):
+        href = a.get("href", "")
+        match = re.search(r"\?v=(\d+)", href)
+        if not match:
             continue
 
-        img_tag = card.find("img")
-        img_url = img_tag.get("src") or img_tag.get("data-src") if img_tag else None
-        if img_url and img_url.startswith("//"):
-            img_url = "https:" + img_url
+        product_id = match.group(1)
+        if product_id in seen_ids:
+            continue
+        seen_ids.add(product_id)
 
-        bag_id = hashlib.md5(href.encode()).hexdigest()
+        full_url = "https://freitag.ch" + href if href.startswith("/") else href
+        img_url = get_image_url(product_id)
+
+        # Extraire la couleur depuis le texte du lien
+        color = ""
+        text = a.get_text(" ", strip=True)
+        color_match = re.search(r"(RED|BLUE|GREEN|BLACK|WHITE|YELLOW|GREY|ORANGE|SILVER|MULTICOLOR)", text)
+        if color_match:
+            color = f" · {color_match.group(1)}"
+
         bags.append({
-            "id": bag_id,
-            "url": "https://freitag.ch" + href if href.startswith("/") else href,
+            "id": product_id,
+            "url": full_url,
             "img": img_url,
+            "color": color,
         })
 
     return bags
 
 def send_telegram(bag):
     text = (
-        "🖤 *Nouveau F41 disponible !*\n"
+        f"🖤 *Nouveau F41 disponible{bag['color']} !*\n"
         f"[Voir le sac sur Freitag]({bag['url']})"
     )
-    if bag.get("img"):
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto",
-            data={
-                "chat_id": TELEGRAM_CHAT_ID,
-                "photo": bag["img"],
-                "caption": text,
-                "parse_mode": "Markdown",
-            },
-            timeout=10,
-        )
-    else:
+    # Essayer d'envoyer avec photo
+    resp = requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto",
+        data={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "photo": bag["img"],
+            "caption": text,
+            "parse_mode": "Markdown",
+        },
+        timeout=10,
+    )
+    # Si la photo échoue, envoyer sans photo
+    if not resp.ok:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             data={
