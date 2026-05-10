@@ -50,7 +50,6 @@ def screenshot_bag(url, product_id):
         page = browser.new_page(viewport={"width": 600, "height": 600})
         page.goto(url, wait_until="networkidle", timeout=30000)
         page.wait_for_timeout(2000)
-        print("Texte page:", page.inner_text("body")[:300])
         for selector in ["text=REFUSER", "text=Refuser", "button:has-text('REFUSER')", "button:has-text('Refuser')", "[id*=refuse]", "[class*=refuse]"]:
             try:
                 page.click(selector, timeout=2000)
@@ -64,6 +63,7 @@ def screenshot_bag(url, product_id):
         except Exception:
             pass
         page.screenshot(path=path, clip={"x": 0, "y": 80, "width": 600, "height": 520})
+        print(f"Screenshot OK : {path} ({os.path.getsize(path)} bytes)")
         browser.close()
     return path
 
@@ -76,18 +76,20 @@ def send_telegram(bag):
         print(f"Screenshot echoue : {e}")
     if screenshot_path and os.path.exists(screenshot_path):
         with open(screenshot_path, "rb") as photo:
-            requests.post(
+            resp = requests.post(
                 f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto",
                 data={"chat_id": TELEGRAM_CHAT_ID, "caption": caption},
                 files={"photo": photo},
                 timeout=30,
             )
+            print(f"Telegram photo : {resp.status_code} {resp.text}")
     else:
-        requests.post(
+        resp = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             data={"chat_id": TELEGRAM_CHAT_ID, "text": caption},
             timeout=10,
         )
+        print(f"Telegram message : {resp.status_code} {resp.text}")
 
 def main():
     seen = load_seen()
