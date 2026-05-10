@@ -60,6 +60,13 @@ def screenshot_bag(url, product_id):
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 600, "height": 600})
         page.goto(url, wait_until="networkidle", timeout=30000)
+        # Fermer la banniere cookies
+        try:
+            page.click("text=REFUSER", timeout=5000)
+            page.wait_for_timeout(1000)
+        except Exception:
+            pass
+        # Attendre l'image produit
         try:
             page.wait_for_selector("img", timeout=10000)
         except Exception:
@@ -67,6 +74,7 @@ def screenshot_bag(url, product_id):
         page.screenshot(path=path, clip={"x": 0, "y": 80, "width": 600, "height": 520})
         browser.close()
     return path
+
 
 def send_telegram(bag):
     caption = (
