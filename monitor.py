@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import subprocess
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
@@ -19,6 +20,18 @@ def load_seen():
 def save_seen(seen):
     with open(STATE_FILE, "w") as f:
         json.dump(list(seen), f)
+
+def commit_seen():
+    subprocess.run(["git", "config", "user.email", "bot@freitag-monitor"], check=True)
+    subprocess.run(["git", "config", "user.name", "Freitag Bot"], check=True)
+    subprocess.run(["git", "add", STATE_FILE], check=True)
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"])
+    if result.returncode != 0:
+        subprocess.run(["git", "commit", "-m", "Update seen bags"], check=True)
+        subprocess.run(["git", "push"], check=True)
+        print("Etat sauvegarde dans le repo")
+    else:
+        print("Aucun nouveau sac, rien a committer")
 
 def fetch_bags():
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -107,6 +120,7 @@ def main():
         seen.add(bag["id"])
         print(f"Notifie : {bag['url']}")
     save_seen(seen)
+    commit_seen()
 
 if __name__ == "__main__":
     main()
