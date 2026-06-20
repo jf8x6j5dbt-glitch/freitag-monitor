@@ -8,7 +8,7 @@ from playwright.sync_api import sync_playwright
 
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-FREITAG_URL = "https://freitag.ch/fr_FR/products/f11-lassie"
+FREITAG_URL = "https://freitag.ch/fr_FR/products/f42-surfside-6"
 STATE_FILE = "seen_bags.json"
 
 def load_seen():
@@ -40,7 +40,7 @@ def fetch_bags():
     soup = BeautifulSoup(r.text, "html.parser")
     bags = []
     seen_ids = set()
-    for a in soup.select("a[href*='f11-lassie?v=']"):
+    for a in soup.select("a[href*='f42-surfside-6?v=']"):
         href = a.get("href", "")
         match = re.search(r"\?v=(\d+)", href)
         if not match:
@@ -87,7 +87,7 @@ def screenshot_bag(url, product_id):
     return path
 
 def send_telegram(bag):
-    caption = f"Nouveau F11 disponible{bag['color']} !\nVoir le sac : {bag['url']}"
+    caption = f"Nouveau F42 Surfside disponible{bag['color']} !\nVoir le sac : {bag['url']}"
     screenshot_path = None
     try:
         screenshot_path = screenshot_bag(bag["url"], bag["id"])
@@ -114,7 +114,7 @@ def main():
     seen = load_seen()
     bags = fetch_bags()
     new_bags = [b for b in bags if b["id"] not in seen]
-    print(f"Sacs F11 trouves : {len(bags)} | Nouveaux : {len(new_bags)}")
+    print(f"Sacs F42 trouves : {len(bags)} | Nouveaux : {len(new_bags)}")
     for bag in new_bags:
         send_telegram(bag)
         seen.add(bag["id"])
